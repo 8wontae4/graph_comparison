@@ -139,23 +139,33 @@ if uploaded_files:
     create_comparison_chart("normalized_y", "Normalized Data Comparison Graph", "Normalized ADC")
 
     # 데이터 저장
+    included_file_names = [file["file_name"] for file in file_data if included_files[file["file_name"]]]
+    current_date = pd.Timestamp.now().strftime("%Y%m%d")
+    default_filename = "_".join(included_file_names) + f"_{current_date}"
+
+    user_filename = st.text_input("엑셀 파일명을 입력하세요 (확장자는 자동 추가됩니다)", value=default_filename)
     if st.button("데이터를 엑셀 파일로 저장"):
+        final_filename = user_filename.strip() if user_filename.strip() else default_filename  # 사용자가 입력한 파일명 확인
         output = BytesIO()
         with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
             for key, sheet_name in [("original_y", "원본 데이터"), ("normalized_y", "정규화 데이터")]:
+                max_length = max(len(file[key]) for file in file_data if included_files[file["file_name"]])
+                index_column = pd.Series(range(1, max_length + 1), name="Index")
+
                 combined_data = pd.concat([
                     pd.DataFrame({
-                        "Index": range(1, len(file[key]) + 1),
-                        f"{file['file_name']}": file[key].values
+                        f"{file['file_name']}": file[key].reindex(range(max_length))
                     }) for file in file_data if included_files[file["file_name"]]
                 ], axis=1)
+                combined_data.insert(0, "Index", index_column)
+
                 if not combined_data.empty:
                     combined_data.to_excel(writer, sheet_name=sheet_name, index=False)
 
         st.download_button(
             "엑셀 파일 다운로드",
             output.getvalue(),
-            "비교_데이터.xlsx",
+            f"{final_filename}.xlsx",  # 최종 파일명 사용
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
 else:
