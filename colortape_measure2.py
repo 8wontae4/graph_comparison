@@ -3,7 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from io import BytesIO
 
-st.title("다중 파일 업로드 - 데이터 비교 및 저장v1.2")
+st.title("다중 파일 업로드 - 데이터 비교 및 저장 v1.3")
 
 # Function: 그래프 생성
 def plot_graph(x, y, graph_type, label, ax):
@@ -44,15 +44,33 @@ if uploaded_files:
             x_axis_default = ' TIME' if ' TIME' in data.columns else data.columns[0]
             y_axis_default = ' Value1' if ' Value1' in data.columns else (data.columns[1] if len(data.columns) > 1 else data.columns[0])
 
+            # Session state 초기화
+            if f"start_row_{file_name_no_ext}" not in st.session_state:
+                st.session_state[f"start_row_{file_name_no_ext}"] = 1
+            if f"end_row_{file_name_no_ext}" not in st.session_state:
+                st.session_state[f"end_row_{file_name_no_ext}"] = len(data)
+
             # 시작 행 설정
             start_row = st.number_input(
                 f"{file_name_no_ext} - 시작 행 설정 (1부터 시작)",
                 min_value=1,
                 max_value=len(data),
-                value=1,
+                value=st.session_state[f"start_row_{file_name_no_ext}"],
                 step=1,
-                key=f"start_row_{file_name_no_ext}"
+                key=f"start_row_input_{file_name_no_ext}"
             )
+            st.session_state[f"start_row_{file_name_no_ext}"] = start_row
+
+            # 종료 행 설정
+            end_row = st.number_input(
+                f"{file_name_no_ext} - 종료 행 설정 (1부터 시작, 전체 데이터 선택 시 비워두세요)",
+                min_value=start_row,
+                max_value=len(data),
+                value=st.session_state[f"end_row_{file_name_no_ext}"],
+                step=1,
+                key=f"end_row_input_{file_name_no_ext}"
+            )
+            st.session_state[f"end_row_{file_name_no_ext}"] = end_row
 
             # X축과 Y축 선택
             x_axis = st.selectbox(
@@ -75,18 +93,18 @@ if uploaded_files:
                 key=f"graph_{file_name_no_ext}"
             )
 
-            # 데이터 필터링: 시작 행부터 데이터 읽기
-            filtered_data = data.iloc[start_row - 1:].reset_index(drop=True)
+            # 데이터 필터링: 시작 행부터 종료 행까지 데이터 읽기
+            filtered_data = data.iloc[start_row - 1:end_row].reset_index(drop=True)
             y_data = filtered_data[y_axis].dropna()
             normalized_y = y_data / y_data.iloc[0]  # 첫 번째 값으로 나누어 정규화
 
             # 그래프 출력
-            st.write(f"**파일 {file_name_no_ext} - {x_axis} vs {y_axis} 그래프 (시작 행 {start_row})**")
+            st.write(f"**파일 {file_name_no_ext} - {x_axis} vs {y_axis} 그래프 (행 {start_row} ~ {end_row})**")
             fig, ax = plt.subplots()
             plot_graph(filtered_data[x_axis], y_data, graph_type, file_name_no_ext, ax)
             ax.set_xlabel(x_axis)
             ax.set_ylabel(y_axis)
-            ax.set_title(f"{file_name_no_ext}: {x_axis} vs {y_axis} (Start Row {start_row})")
+            ax.set_title(f"{file_name_no_ext}: {x_axis} vs {y_axis} (Rows {start_row}~{end_row})")
             ax.legend()
             st.pyplot(fig)
 
