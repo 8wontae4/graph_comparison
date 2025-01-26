@@ -3,7 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from io import BytesIO
 
-st.title("다중 파일 업로드 - 데이터 비교 및 저장v1.1")
+st.title("다중 파일 업로드 - 데이터 비교 및 저장v1.2")
 
 # Function: 그래프 생성
 def plot_graph(x, y, graph_type, label, ax):
@@ -40,6 +40,10 @@ if uploaded_files:
             st.write(f"{file_name_no_ext} 데이터 미리보기:")
             st.dataframe(data)
 
+            # 기본 X축과 Y축 설정
+            x_axis_default = ' TIME' if ' TIME' in data.columns else data.columns[0]
+            y_axis_default = ' Value1' if ' Value1' in data.columns else (data.columns[1] if len(data.columns) > 1 else data.columns[0])
+
             # 시작 행 설정
             start_row = st.number_input(
                 f"{file_name_no_ext} - 시작 행 설정 (1부터 시작)",
@@ -51,8 +55,18 @@ if uploaded_files:
             )
 
             # X축과 Y축 선택
-            x_axis = st.selectbox(f"{file_name_no_ext} - X축 열 선택", options=data.columns, key=f"x_{file_name_no_ext}")
-            y_axis = st.selectbox(f"{file_name_no_ext} - Y축 열 선택", options=data.columns, key=f"y_{file_name_no_ext}")
+            x_axis = st.selectbox(
+                f"{file_name_no_ext} - X축 열 선택", 
+                options=data.columns, 
+                index=list(data.columns).index(x_axis_default),
+                key=f"x_{file_name_no_ext}"
+            )
+            y_axis = st.selectbox(
+                f"{file_name_no_ext} - Y축 열 선택", 
+                options=data.columns, 
+                index=list(data.columns).index(y_axis_default),
+                key=f"y_{file_name_no_ext}"
+            )
 
             # 그래프 유형 선택
             graph_type = st.selectbox(
@@ -72,7 +86,7 @@ if uploaded_files:
             plot_graph(filtered_data[x_axis], y_data, graph_type, file_name_no_ext, ax)
             ax.set_xlabel(x_axis)
             ax.set_ylabel(y_axis)
-            ax.set_title(f"{file_name_no_ext}: {x_axis} vs {y_axis} (시작 행 {start_row})")
+            ax.set_title(f"{file_name_no_ext}: {x_axis} vs {y_axis} (Start Row {start_row})")
             ax.legend()
             st.pyplot(fig)
 
@@ -104,7 +118,7 @@ if uploaded_files:
         st.pyplot(fig)
 
     create_comparison_chart("original_y", "Original Data Comparison Graph", "ADC")
-    create_comparison_chart("normalized_y", "Normalized Dada Comparison Graph", "Normalized ADC")
+    create_comparison_chart("normalized_y", "Normalized Data Comparison Graph", "Normalized ADC")
 
     # 데이터 저장
     if st.button("데이터를 엑셀 파일로 저장"):
