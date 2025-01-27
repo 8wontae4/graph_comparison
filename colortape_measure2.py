@@ -3,7 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from io import BytesIO
 
-st.title("다중 파일 업로드 - 데이터 비교 및 저장 v1.3")
+st.title("다중 파일 업로드 - 데이터 비교 및 저장 v1.4")
 
 # Function: 그래프 생성
 def plot_graph(x, y, graph_type, label, ax):
@@ -21,6 +21,8 @@ uploaded_files = st.file_uploader("CSV 파일을 여러 개 업로드하세요",
 
 if uploaded_files:
     file_data = []  # 각 파일별 데이터 저장
+    difference_data = []  # 차이값 데이터 저장
+    difference_table = None
 
     for file in uploaded_files:
         try:
@@ -125,27 +127,83 @@ if uploaded_files:
 
     def create_comparison_chart(data_key, title, y_label):
         fig, ax = plt.subplots()
+        comparison_table = pd.DataFrame()
         for file in file_data:
             if included_files[file["file_name"]]:
                 y_data = file[data_key]
                 plot_graph(range(1, len(y_data) + 1), y_data, file["graph_type"], file["file_name"], ax)
+                comparison_table[file["file_name"]] = y_data.reset_index(drop=True)
+
+        # 평균값 및 표준편차율 계산 후 열 추가
+        if not comparison_table.empty:
+            comparison_table["Average"] = comparison_table.mean(axis=1)
+            comparison_table["StdDev%"] = (
+                comparison_table.std(axis=1) / comparison_table["Average"] * 100
+            ).fillna(0)  # NaN 방지
+
         ax.set_title(title)
         ax.set_xlabel("Index")
         ax.set_ylabel(y_label)
         ax.legend()
         st.pyplot(fig)
 
+        # 추가된 표 출력
+        if not comparison_table.empty:
+            st.write(f"### {title} 데이터 표")
+            st.dataframe(comparison_table)
+
     create_comparison_chart("original_y", "Original Data Comparison Graph", "ADC")
     create_comparison_chart("normalized_y", "Normalized Data Comparison Graph", "Normalized ADC")
 
-    # 데이터 저장
-    included_file_names = [file["file_name"] for file in file_data if included_files[file["file_name"]]]
-    current_date = pd.Timestamp.now().strftime("%Y%m%d")
-    default_filename = "_".join(included_file_names) + f"_{current_date}"
+    # 선택된 데이터 차이값 분석 실행 여부
+    if st.checkbox("선택된 데이터 차이값 분석 실행"):
+        # Normalized Data Comparison Graph 하단에 추가된 표
+        st.write("### 선택된 데이터 차이값(Del ADC) 비교")
 
+        # 각 파일에서 차이값 계산 및 표 생성
+        if included_files:
+            for file in file_data:
+                if included_files[file["file_name"]]:
+                    y_data = file["original_y"]
+                    start_value = y_data.iloc[0]
+                    difference = abs(y_data - start_value)
+                    difference_data.append({"file_name": file["file_name"], "difference": difference})
+
+            # 차이값을 표 형태로 표시
+            if difference_data:
+                max_length = max(len(data["difference"]) for data in difference_data)
+                difference_table = pd.DataFrame({"Index": range(1, max_length + 1)})
+                for data in difference_data:
+                    difference_table[data["file_name"]] = data["difference"].reindex(range(max_length))
+
+                # 평균값 및 표준편차율 계산 후 열 추가
+                difference_table["Average"] = difference_table.loc[:, difference_table.columns != "Index"].mean(axis=1)
+                difference_table["StdDev%"] = (
+                    difference_table.loc[:, difference_table.columns != "Index"].std(axis=1) / 
+                    difference_table["Average"] * 100
+                ).fillna(0)  # NaN 방지
+
+                st.write(difference_table)
+
+                # 표준편차율(StdDev%) 값을 막대그래프로 시각화
+                st.write("### 선택된 데이터 Del ADC 값의 시간별 표준편차율(StdDev%)")
+                fig, ax = plt.subplots()
+                ax.bar(difference_table["Index"], difference_table["StdDev%"], color="orange")
+                ax.set_xlabel("Index")
+                ax.set_ylabel("StdDev%")
+                ax.set_title("Standard Deviation Percentage Bar Chart")
+                st.pyplot(fig)
+
+    # 엑셀 저장 로직
+    unique_file_names = list(dict.fromkeys([file["file_name"] for file in file_data if included_files[file["file_name"]]]))
+    condensed_file_name = "_".join(unique_file_names)
+    default_filename = f"{condensed_file_name}_{pd.Timestamp.now().strftime('%Y%m%d')}"
+
+    # 사용자 입력을 허용하는 파일명 텍스트 상자
     user_filename = st.text_input("엑셀 파일명을 입력하세요 (확장자는 자동 추가됩니다)", value=default_filename)
+
     if st.button("데이터를 엑셀 파일로 저장"):
-        final_filename = user_filename.strip() if user_filename.strip() else default_filename  # 사용자가 입력한 파일명 확인
+        final_filename = user_filename.strip() if user_filename.strip() else default_filename
         output = BytesIO()
         with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
             for key, sheet_name in [("original_y", "원본 데이터"), ("normalized_y", "정규화 데이터")]:
@@ -162,10 +220,22 @@ if uploaded_files:
                 if not combined_data.empty:
                     combined_data.to_excel(writer, sheet_name=sheet_name, index=False)
 
+            # 차이값 비교 데이터 저장
+            if difference_data and difference_table is not None:
+                difference_combined = pd.DataFrame({"Index": range(1, len(difference_table) + 1)})
+                for data in difference_data:
+                    difference_combined[data["file_name"]] = data["difference"].reindex(range(len(difference_table)))
+                difference_combined["Average"] = difference_combined.loc[:, difference_combined.columns != "Index"].mean(axis=1)
+                difference_combined["StdDev%"] = (
+                    difference_combined.loc[:, difference_combined.columns != "Index"].std(axis=1) / 
+                    difference_combined["Average"] * 100
+                ).fillna(0)
+                difference_combined.to_excel(writer, sheet_name="차이값 비교", index=False)
+
         st.download_button(
             "엑셀 파일 다운로드",
             output.getvalue(),
-            f"{final_filename}.xlsx",  # 최종 파일명 사용
+            f"{final_filename}.xlsx",
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
 else:
