@@ -236,7 +236,7 @@ if uploaded_files:
     # 엑셀 저장 로직
     unique_file_names = list(dict.fromkeys([file["file_name"] for file in file_data if included_files[file["file_name"]]]))
     condensed_file_name = "_".join(unique_file_names)
-    default_filename = f"{condensed_file_name}_{pd.Timestamp.now().strftime('%Y%m%d')}"
+    default_filename = f"{pd.Timestamp.now().strftime('%Y%m%d')}_{condensed_file_name}"
 
     # 사용자 입력을 허용하는 파일명 텍스트 상자
     user_filename = st.text_input("엑셀 파일명을 입력하세요 (확장자는 자동 추가됩니다)", value=default_filename)
