@@ -3,7 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from io import BytesIO
 
-st.title("다중 파일 업로드 - 데이터 비교 및 저장 v1.4")
+st.title("다중 파일 업로드 - 데이터 비교 및 저장 v1.3")
 
 # Function: 그래프 생성
 def plot_graph(x, y, graph_type, label, ax):
@@ -15,6 +15,10 @@ def plot_graph(x, y, graph_type, label, ax):
         ax.plot(x, y, linestyle="-.", label=label)
     elif graph_type == "Line + Scatter (선 + 점 그래프)":
         ax.plot(x, y, linestyle="-", marker="o", label=label)
+    
+    # 모든 그래프에 그리드 추가
+    ax.grid(True, linestyle="--", alpha=0.2, color="gray")
+
 
 # CSV 파일 다중 업로드
 uploaded_files = st.file_uploader("CSV 파일을 여러 개 업로드하세요", type="csv", accept_multiple_files=True)
@@ -63,16 +67,19 @@ if uploaded_files:
             )
             st.session_state[f"start_row_{file_name_no_ext}"] = start_row
 
-            # 종료 행 설정
+            # 기존의 end_row 값이 데이터 크기를 초과하지 않도록 조정
+            if f"end_row_{file_name_no_ext}" not in st.session_state or st.session_state[f"end_row_{file_name_no_ext}"] > len(data):
+                st.session_state[f"end_row_{file_name_no_ext}"] = len(data)  # 데이터 길이로 조정
+
             end_row = st.number_input(
                 f"{file_name_no_ext} - 종료 행 설정 (1부터 시작, 전체 데이터 선택 시 비워두세요)",
                 min_value=start_row,
                 max_value=len(data),
-                value=st.session_state[f"end_row_{file_name_no_ext}"],
+                value=st.session_state[f"end_row_{file_name_no_ext}"],  # 조정된 값 사용
                 step=1,
                 key=f"end_row_input_{file_name_no_ext}"
-            )
-            st.session_state[f"end_row_{file_name_no_ext}"] = end_row
+)
+
 
             # X축과 Y축 선택
             x_axis = st.selectbox(
@@ -144,13 +151,28 @@ if uploaded_files:
         ax.set_title(title)
         ax.set_xlabel("Index")
         ax.set_ylabel(y_label)
-        ax.legend()
+
+         # 범례를 그래프 밖 우측 상단에 배치
+        ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0)
         st.pyplot(fig)
 
         # 추가된 표 출력
         if not comparison_table.empty:
             st.write(f"### {title} 데이터 표")
             st.dataframe(comparison_table)
+
+           # 체크박스 추가: StdDev% 막대그래프 표시 여부
+            show_stddev_chart = st.checkbox(f"📊 {title} - StdDev% 그래프 보기")
+        
+        # 체크박스 선택 시 막대그래프 출력
+            if show_stddev_chart:
+                st.write(f"### {title} - 표준편차율 (StdDev%) 시각화")
+                fig, ax = plt.subplots()
+                ax.bar(comparison_table.index + 1, comparison_table["StdDev%"], color="orange")
+                ax.set_xlabel("Index")
+                ax.set_ylabel("StdDev%")
+                ax.set_title(f"{title} - Standard Deviation Percentage")
+                st.pyplot(fig)  # 그래프 출력
 
     create_comparison_chart("original_y", "Original Data Comparison Graph", "ADC")
     create_comparison_chart("normalized_y", "Normalized Data Comparison Graph", "Normalized ADC")
@@ -161,6 +183,7 @@ if uploaded_files:
         st.write("### 선택된 데이터 차이값(Del ADC) 비교")
 
         # 각 파일에서 차이값 계산 및 표 생성
+        difference_data = []
         if included_files:
             for file in file_data:
                 if included_files[file["file_name"]]:
@@ -183,7 +206,23 @@ if uploaded_files:
                     difference_table["Average"] * 100
                 ).fillna(0)  # NaN 방지
 
+                # 표 출력
                 st.write(difference_table)
+
+                # 차이값 데이터 라인 그래프 추가
+                st.write("### 선택된 데이터 차이값(Del ADC) 라인 그래프")
+                fig, ax = plt.subplots()
+
+                # 평균값 및 표준편차율 컬럼 제외하고 그래프 생성
+                for column in difference_table.columns:
+                    if column not in ["Index", "Average", "StdDev%"]:  
+                        ax.plot(difference_table["Index"], difference_table[column], label=column)
+
+                ax.set_xlabel("Index")
+                ax.set_ylabel("Difference (Del ADC)")
+                ax.set_title("Selected Data Difference (Del ADC)")
+                ax.legend()
+                st.pyplot(fig)
 
                 # 표준편차율(StdDev%) 값을 막대그래프로 시각화
                 st.write("### 선택된 데이터 Del ADC 값의 시간별 표준편차율(StdDev%)")
