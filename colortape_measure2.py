@@ -20,8 +20,8 @@ if uploaded_file:
     df.columns = df.columns.str.strip()
     
     # 업로드된 파일 미리보기 (최대 5000행)
-    st.write("### 업로드된 파일 미리보기 (최대 5000행)")
-    st.dataframe(df.head(5000))
+    st.write("### 업로드된 파일 미리보기 (최대 50000행)")
+    st.dataframe(df.head(50000))
     
     # TIME 컬럼이 있는지 확인
     if "TIME" not in df.columns:
