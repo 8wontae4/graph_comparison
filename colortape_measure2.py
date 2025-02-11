@@ -2,9 +2,10 @@ import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
 import io
+from plotly.colors import qualitative
 
 # Streamlit UI 설정
-st.title("CSV 데이터 분석-Portable.v2.1")
+st.title("CSV 데이터 분석-Portable.v2.2")
 
 # CSV 파일 업로드
 uploaded_file = st.file_uploader("CSV 파일을 업로드하세요", type=["csv"], key="file_uploader")
@@ -84,6 +85,11 @@ if uploaded_file:
         selected_analyses = {}
         graph_settings = {}
 
+        
+
+        # Plotly 기본 색상 팔레트
+        default_colors = qualitative.Plotly
+
         for idx, analysis in enumerate(st.session_state.analyses):
             analysis_name = analysis.get("name", f"분석_{idx + 1}")
             selected_analyses[analysis_name] = st.checkbox(analysis_name, value=True, key=f"select_analysis_{idx}")
@@ -94,11 +100,18 @@ if uploaded_file:
                     ["Scatter+line", "line", "dash", "dash-dot"],
                     key=f"type_{idx}"
                 )
-                color = st.color_picker(f"{analysis_name} 색상 선택", "#0000FF", key=f"color_{idx}")
+                
+                # 자동 색상 지정: 인덱스에 따른 기본 색상 선택
+                default_color = default_colors[idx % len(default_colors)]
+                color = st.color_picker(f"{analysis_name} 색상 선택", default_color, key=f"color_{idx}")
+                
                 marker_symbol = st.selectbox(
                     f"{analysis_name} Scatter 도형 선택",
-                    ["circle", "square", "diamond", "triangle-up", "triangle-down", "star", "hexagon", "pentagon", "circle-open", "squre-dot", "triangle-up-open", "triangle-down-open", "star-open", "hexagon-open", "pentagon-open"],
+                    ["circle", "square", "diamond", "triangle-up", "triangle-down", "star", "hexagon", "pentagon", 
+                    "circle-open", "square-dot", "triangle-up-open", "triangle-down-open", "star-open", 
+                    "hexagon-open", "pentagon-open"],
                     key=f"marker_{idx}") if graph_type == "Scatter+line" else None
+                
                 marker_size = st.slider(
                     f"{analysis_name} Scatter 도형 크기",
                     min_value=1, max_value=20, value=7, key=f"size_{idx}") if graph_type == "Scatter+line" else None
@@ -109,6 +122,7 @@ if uploaded_file:
                     "marker": marker_symbol,
                     "size": marker_size
                 }
+
 
             col1, col2 = st.columns([0.9, 0.1])
             with col1:
