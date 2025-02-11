@@ -4,7 +4,7 @@ import plotly.graph_objects as go
 import io
 
 # Streamlit UI 설정
-st.title("CSV 데이터 분석-Portable.v2")
+st.title("CSV 데이터 분석-Portable.v2.1")
 
 # CSV 파일 업로드
 uploaded_file = st.file_uploader("CSV 파일을 업로드하세요", type=["csv"], key="file_uploader")
@@ -185,15 +185,15 @@ if uploaded_file:
         st.write("## 축 및 폰트 설정")
         col1, col2, col3 = st.columns(3)
         with col1:
-            x_min = st.number_input("X축 최소값", value=0, key="x_min")
+            x_min = st.number_input("X축 최소값", value=-10, key="x_min")
             x_font_size = st.number_input("X축 폰트 크기", min_value=8, max_value=30, value=20, key="x_font_size")
-            x_axis_label = st.text_input("X축 이름", value="Row_Index", key="x_axis_label")
+            x_axis_label = st.text_input("X축 이름", value="TIME", key="x_axis_label")
         with col2:
-            x_max = st.number_input("X축 최대값", value=100, key="x_max")
+            x_max = st.number_input("X축 최대값", value=130, key="x_max")
             x_tick_font_size = st.number_input("X축 값 폰트 크기", min_value=8, max_value=30, value=15, key="x_tick_font_size")
         with col3:
-            y_min = st.number_input("Y축 최소값", value=0, key="y_min")
-            y_max = st.number_input("Y축 최대값", value=5000, key="y_max")
+            y_min = st.number_input("Y축 최소값", value=200, key="y_min")
+            y_max = st.number_input("Y축 최대값", value=2000, key="y_max")
             y_font_size = st.number_input("Y축 폰트 크기", min_value=8, max_value=30, value=20, key="y_font_size")
             y_tick_font_size = st.number_input("Y축 값 폰트 크기", min_value=8, max_value=30, value=15, key="y_tick_font_size")
             y_axis_label = st.text_input("Y축 이름", value="ADC", key="y_axis_label")
