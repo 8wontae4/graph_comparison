@@ -10,37 +10,54 @@ st.title("CSV 데이터 분석-Portable.v2.2")
 # CSV 파일 업로드
 uploaded_file = st.file_uploader("CSV 파일을 업로드하세요", type=["csv"], key="file_uploader")
 
+if uploaded_file:
+    try:
+        # 반드시 여기서 read() 하고 바로 BytesIO 로 감싸서 처리해야 함
+        bytes_data = uploaded_file.read()
+        string_io = io.BytesIO(bytes_data)
+
+        df = pd.read_csv(string_io, encoding='utf-8-sig')
+        df.columns = df.columns.str.strip()
+
+        st.success("CSV 파일이 정상적으로 로드되었습니다.")
+        st.dataframe(df.head())
+
+    except Exception as e:
+        st.error(f"CSV 파일을 읽는 중 오류가 발생했습니다: {e}")
+        st.stop()
+
 # 세션 상태 초기화
 if "analyses" not in st.session_state:
     st.session_state.analyses = []
 
 if uploaded_file:
-    df = pd.read_csv(uploaded_file)
-    df.columns = df.columns.str.strip()
+    string_io.seek(0)  # 커서 위치를 처음으로 되돌림
+    df = pd.read_csv(string_io, encoding='utf-8-sig')
+    df.columns = df.columns.str.strip() 
 
     st.write("### 업로드된 파일 미리보기 (최대 50,000행)")
     st.dataframe(df.head(50000), key="dataframe_preview")
 
     if "TIME" not in df.columns:
-        st.error("CSV 파일에 'TIME' 컬럼이 없습니다. 올바른 파일을 업로드하세요.", key="time_column_error")
+        st.error("CSV 파일에 'TIME' 컬럼이 없습니다. 올바른 파일을 업로드하세요.")
         st.stop()
 
     y_column_options = [col for col in df.columns if col.startswith("Value")]
     if not y_column_options:
-        st.error("Value1, Value2, Value3, Value4 중 하나의 컬럼이 존재하지 않습니다.", key="value_column_error")
+        st.error("Value1, Value2, Value3, Value4 중 하나의 컬럼이 존재하지 않습니다.")
         st.stop()
 
     y_column = st.selectbox("Y축 데이터 선택", y_column_options, index=y_column_options.index("Value3"), key="y_column_select")
-    start_time = st.text_input("시작할 TIME 값 입력", value="hh:mm:ss", key="start_time_input")
+    start_time = st.text_input("시작할 TIME 값 입력", value="hh:mm:ss")
     n_value = st.number_input("한 번에 선택할 데이터 개수", min_value=1, value=120, key="n_value_input")
     r_value = st.number_input("반복 횟수", min_value=1, value=1, key="r_value_input")
-    analysis_name = st.text_input("분석 이름을 입력하세요", value=f"분석_{len(st.session_state.analyses) + 1}", key="analysis_name_input")
+    analysis_name = st.text_input("분석 이름을 입력하세요", value=f"분석_{len(st.session_state.analyses) + 1}")
 
     def apply_pattern(y_column, start_time, n_value, r_value):
         if start_time in df["TIME"].astype(str).values:
             start_idx = df[df["TIME"].astype(str) == start_time].index[0]
         else:
-            st.error("입력한 TIME 값이 CSV 데이터에 없습니다.", key="start_time_error")
+            st.error("입력한 TIME 값이 CSV 데이터에 없습니다.")
             return None, None
 
         df["Pattern"] = pd.NA
@@ -201,7 +218,7 @@ if uploaded_file:
         with col1:
             x_min = st.number_input("X축 최소값", value=-10, key="x_min")
             x_font_size = st.number_input("X축 폰트 크기", min_value=8, max_value=30, value=20, key="x_font_size")
-            x_axis_label = st.text_input("X축 이름", value="TIME", key="x_axis_label")
+            x_axis_label = st.text_input("X축 이름", value="TIME")
         with col2:
             x_max = st.number_input("X축 최대값", value=130, key="x_max")
             x_tick_font_size = st.number_input("X축 값 폰트 크기", min_value=8, max_value=30, value=15, key="x_tick_font_size")
@@ -210,7 +227,7 @@ if uploaded_file:
             y_max = st.number_input("Y축 최대값", value=2000, key="y_max")
             y_font_size = st.number_input("Y축 폰트 크기", min_value=8, max_value=30, value=20, key="y_font_size")
             y_tick_font_size = st.number_input("Y축 값 폰트 크기", min_value=8, max_value=30, value=15, key="y_tick_font_size")
-            y_axis_label = st.text_input("Y축 이름", value="ADC", key="y_axis_label")
+            y_axis_label = st.text_input("Y축 이름", value="ADC")
 
         st.write("## 분석 비교 그래프")
         fig = go.Figure()
@@ -291,7 +308,7 @@ if uploaded_file:
 
         from datetime import datetime
         default_filename = datetime.now().strftime('%y%m%d') + "_analysis.xlsx"
-        custom_filename = st.text_input("엑셀 파일 이름을 입력하세요", value=default_filename, key="excel_filename")
+        custom_filename = st.text_input("엑셀 파일 이름을 입력하세요", value=default_filename)
 
         st.download_button(
             label="분석 데이터 다운로드 (Excel)",
