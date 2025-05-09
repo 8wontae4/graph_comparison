@@ -5,7 +5,7 @@ import io
 from plotly.colors import qualitative
 
 # Streamlit UI 설정
-st.title("CSV 데이터 분석-Portable.v2.2_25.05.09.-15")
+st.title("CSV 데이터 분석-Portable.v2.2_25.05.09.-16")
 
 # CSV 파일 업로드
 uploaded_file = st.file_uploader("CSV 파일 업로드", type=["csv"])
@@ -32,29 +32,34 @@ if uploaded_file is not None:
 if "analyses" not in st.session_state:
     st.session_state.analyses = []
 
-if uploaded_file:
-    string_io.seek(0)  # 커서 위치를 처음으로 되돌림
-    df.columns = df.columns.str.strip() 
+# ✅ CSV 업로드가 끝난 후, df가 세션에 있는지 확인
+if "df" not in st.session_state:
+    st.warning("📄 먼저 CSV 파일을 업로드해주세요.")
+    st.stop()
 
-    st.write("### 업로드된 파일 미리보기 (최대 50,000행)")
-    st.dataframe(df.head(50000), key="dataframe_preview")
+# ✅ 세션에서 df 불러오기
+df = st.session_state.df
 
-    if "TIME" not in df.columns:
+
+st.write("### 업로드된 파일 미리보기 (최대 50,000행)")
+st.dataframe(df.head(50000), key="dataframe_preview")
+
+if "TIME" not in df.columns:
         st.error("CSV 파일에 'TIME' 컬럼이 없습니다. 올바른 파일을 업로드하세요.")
         st.stop()
 
-    y_column_options = [col for col in df.columns if col.startswith("Value")]
-    if not y_column_options:
+y_column_options = [col for col in df.columns if col.startswith("Value")]
+if not y_column_options:
         st.error("Value1, Value2, Value3, Value4 중 하나의 컬럼이 존재하지 않습니다.")
         st.stop()
 
-    y_column = st.selectbox("Y축 데이터 선택", y_column_options, index=y_column_options.index("Value3"), key="y_column_select")
-    start_time = st.text_input("시작할 TIME 값 입력", value="hh:mm:ss")
-    n_value = st.number_input("한 번에 선택할 데이터 개수", min_value=1, value=120, key="n_value_input")
-    r_value = st.number_input("반복 횟수", min_value=1, value=1, key="r_value_input")
-    analysis_name = st.text_input("분석 이름을 입력하세요", value=f"분석_{len(st.session_state.analyses) + 1}")
+y_column = st.selectbox("Y축 데이터 선택", y_column_options, index=y_column_options.index("Value3"), key="y_column_select")
+start_time = st.text_input("시작할 TIME 값 입력", value="hh:mm:ss")
+n_value = st.number_input("한 번에 선택할 데이터 개수", min_value=1, value=120, key="n_value_input")
+r_value = st.number_input("반복 횟수", min_value=1, value=1, key="r_value_input")
+analysis_name = st.text_input("분석 이름을 입력하세요", value=f"분석_{len(st.session_state.analyses) + 1}")
 
-    def apply_pattern(y_column, start_time, n_value, r_value):
+def apply_pattern(y_column, start_time, n_value, r_value):
         if start_time in df["TIME"].astype(str).values:
             start_idx = df[df["TIME"].astype(str) == start_time].index[0]
         else:
@@ -77,7 +82,7 @@ if uploaded_file:
 
         return filtered_df, pivot_df
 
-    if st.button("패턴 적용", key="apply_pattern_button"):
+if st.button("패턴 적용", key="apply_pattern_button"):
         filtered_df, pivot_df = apply_pattern(y_column, start_time, n_value, r_value)
         if filtered_df is not None:
             st.write("### 패턴이 적용된 데이터")
@@ -95,10 +100,10 @@ if uploaded_file:
                 "pivot_df": pivot_df
             })
 
-    st.markdown("---")  # 기본 수평선
+st.markdown("---")  # 기본 수평선
 
 
-    if st.session_state.analyses:
+if st.session_state.analyses:
         st.write("## 기존 분석 결과")
         selected_analyses = {}
         graph_settings = {}
