@@ -5,18 +5,21 @@ import io
 from plotly.colors import qualitative
 
 # Streamlit UI 설정
-st.title("CSV 데이터 분석-Portable.v2.2_25.05.0911.")
+st.title("CSV 데이터 분석-Portable.v2.2_25.05.09.12")
 
 # CSV 파일 업로드
 uploaded_file = st.file_uploader("CSV 파일 업로드", type=["csv"])
 
 if uploaded_file is not None:
     try:
-        bytes_data = uploaded_file.getvalue()  # 안전하게 처리
+        bytes_data = uploaded_file.getvalue()
         string_io = io.BytesIO(bytes_data)
-
         df = pd.read_csv(string_io, encoding="utf-8-sig")
         df.columns = df.columns.str.strip()
+
+        # ✅ 세션에 저장
+        st.session_state.df = df
+        st.session_state.string_io = string_io
 
         st.success("✅ CSV 파일 로드 성공")
         st.dataframe(df.head())
