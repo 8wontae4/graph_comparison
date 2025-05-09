@@ -5,7 +5,7 @@ import io
 from plotly.colors import qualitative
 
 # Streamlit UI 설정
-st.title("CSV 데이터 분석-Portable.v2.2")
+st.title("CSV 데이터 분석-Portable.v2.2-25.05.09.")
 
 # CSV 파일 업로드
 uploaded_file = st.file_uploader("CSV 파일을 업로드하세요", type=["csv"], key="file_uploader")
