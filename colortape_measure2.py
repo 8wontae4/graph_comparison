@@ -5,26 +5,25 @@ import io
 from plotly.colors import qualitative
 
 # Streamlit UI 설정
-st.title("CSV 데이터 분석-Portable.v2.2-25.05.09.")
+st.title("CSV 데이터 분석-Portable.v2.2_25.05.09.")
 
 # CSV 파일 업로드
-uploaded_file = st.file_uploader("CSV 파일을 업로드하세요", type=["csv"], key="file_uploader")
+uploaded_file = st.file_uploader("CSV 파일 업로드", type=["csv"])
 
-if uploaded_file:
+if uploaded_file is not None:
     try:
-        # 반드시 여기서 read() 하고 바로 BytesIO 로 감싸서 처리해야 함
-        bytes_data = uploaded_file.read()
+        bytes_data = uploaded_file.getvalue()  # 안전하게 처리
         string_io = io.BytesIO(bytes_data)
 
-        df = pd.read_csv(string_io, encoding='utf-8-sig')
+        df = pd.read_csv(string_io, encoding="utf-8-sig")
         df.columns = df.columns.str.strip()
 
-        st.success("CSV 파일이 정상적으로 로드되었습니다.")
+        st.success("✅ CSV 파일 로드 성공")
         st.dataframe(df.head())
 
     except Exception as e:
-        st.error(f"CSV 파일을 읽는 중 오류가 발생했습니다: {e}")
-        st.stop()
+        st.error("CSV 파일을 읽는 중 오류 발생")
+        st.text(str(e))
 
 # 세션 상태 초기화
 if "analyses" not in st.session_state:
@@ -32,7 +31,6 @@ if "analyses" not in st.session_state:
 
 if uploaded_file:
     string_io.seek(0)  # 커서 위치를 처음으로 되돌림
-    df = pd.read_csv(string_io, encoding='utf-8-sig')
     df.columns = df.columns.str.strip() 
 
     st.write("### 업로드된 파일 미리보기 (최대 50,000행)")
