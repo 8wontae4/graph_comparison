@@ -8,19 +8,21 @@ from plotly.colors import qualitative
 st.title("CSV 데이터 분석-Portable.v2.2_25.05.09.-20")
 
 # CSV 파일 업로드
-uploaded_file = st.file_uploader("CSV 파일 업로드", type=["csv"])
+uploaded_file = st.file_uploader("CSV 파일 업로드", type=None)  # 확장자 제한 제거
 
 if uploaded_file:
+    if not uploaded_file.name.lower().endswith(".csv"):
+        st.error("❌ .csv 확장자가 붙은 파일만 업로드할 수 있습니다.")
+        st.stop()
+
     try:
-        file_bytes = uploaded_file.read()  # getvalue 대신 read 사용
+        file_bytes = uploaded_file.read()
         df = pd.read_csv(io.BytesIO(file_bytes), encoding="utf-8-sig")
         df.columns = df.columns.str.strip()
 
         st.session_state["df"] = df
-
         st.success("✅ CSV 파일 로드 성공")
         st.dataframe(df.head())
-
     except Exception as e:
         st.session_state.pop("df", None)
         st.error("CSV 파일을 읽는 중 오류 발생")
