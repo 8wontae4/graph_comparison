@@ -5,7 +5,7 @@ import io
 from plotly.colors import qualitative
 
 # Streamlit UI 설정
-st.title("CSV 데이터 분석-Portable.v2.2_25.05.09.-16")
+st.title("CSV 데이터 분석-Portable.v2.2_25.05.09.-18")
 
 # CSV 파일 업로드
 uploaded_file = st.file_uploader("CSV 파일 업로드", type=["csv"])
@@ -13,18 +13,16 @@ uploaded_file = st.file_uploader("CSV 파일 업로드", type=["csv"])
 if uploaded_file is not None:
     try:
         bytes_data = uploaded_file.getvalue()
-        string_io = io.BytesIO(bytes_data)
-        df = pd.read_csv(string_io, encoding="utf-8-sig")
+        df = pd.read_csv(io.BytesIO(bytes_data), encoding="utf-8-sig")
         df.columns = df.columns.str.strip()
 
-        # ✅ 세션에 저장
-        st.session_state.df = df
-        st.session_state.string_io = string_io
+        st.session_state["df"] = df  # 안전하게 저장
 
         st.success("✅ CSV 파일 로드 성공")
         st.dataframe(df.head())
 
     except Exception as e:
+        st.session_state.pop("df", None)  # 이전 df 제거 (에러 상태 초기화)
         st.error("CSV 파일을 읽는 중 오류 발생")
         st.text(str(e))
 
@@ -39,7 +37,6 @@ if "df" not in st.session_state:
 
 # ✅ 세션에서 df 불러오기
 df = st.session_state.df
-
 
 st.write("### 업로드된 파일 미리보기 (최대 50,000행)")
 st.dataframe(df.head(50000), key="dataframe_preview")
