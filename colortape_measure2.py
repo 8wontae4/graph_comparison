@@ -3,9 +3,10 @@ import pandas as pd
 import plotly.graph_objects as go
 import io
 from plotly.colors import qualitative
+import re # 👈 엑셀 시트 이름 수정을 위해 re 모듈 추가
 
 # Streamlit UI 설정
-st.title("CSV 데이터 분석-Portable.v2.2_25.05.09.-20")
+st.title("CSV 데이터 분석-Portable.v2.3_25.06.27.")
 
 # CSV 파일 업로드
 uploaded_file = st.file_uploader("CSV 파일 업로드", type=None)  # 확장자 제한 제거
@@ -99,7 +100,7 @@ if st.button("패턴 적용", key="apply_pattern_button"):
                 "pivot_df": pivot_df
             })
 
-st.markdown("---")  # 기본 수평선
+st.markdown("---") # 기본 수평선
 
 
 if st.session_state.analyses:
@@ -215,7 +216,7 @@ if st.session_state.analyses:
                     del st.session_state.analyses[idx]
                     st.rerun()
 
-        st.markdown("---")  # 기본 수평선
+        st.markdown("---") # 기본 수평선
 
 
         st.write("## 축 및 폰트 설정")
@@ -303,7 +304,20 @@ if st.session_state.analyses:
 
             for analysis in st.session_state.analyses:
                 if selected_analyses.get(analysis["name"], False):
-                    analysis["pivot_df"].to_excel(writer, sheet_name=analysis["name"])
+                    # --- 👇 오류 수정된 부분 ---
+                    # 1. 원본 분석 이름을 가져옵니다.
+                    original_sheet_name = analysis["name"]
+                    
+                    # 2. 엑셀 시트 이름에 사용할 수 없는 문자: [ ] / \ * ? : 등을 '_'로 바꿉니다.
+                    sanitized_name = re.sub(r'[\\/*?:\[\]]', '_', original_sheet_name)
+                    
+                    # 3. 시트 이름 길이를 31자로 제한합니다.
+                    final_sheet_name = sanitized_name[:31]
+
+                    # 4. 안전하게 변환된 이름으로 시트를 저장합니다.
+                    analysis["pivot_df"].to_excel(writer, sheet_name=final_sheet_name)
+                    # --- 👆 오류 수정된 부분 끝 ---
+                    
                     average_df[analysis["name"]] = analysis["pivot_df"]["Average"]
                     if analysis["name"] in normalized_data:
                         normalized_df[analysis["name"]] = normalized_data[analysis["name"]]
